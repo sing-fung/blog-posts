@@ -49,4 +49,4 @@ A route is designed to achieve this function.
 
 ## Caching
 
-Posts would be saved into MongoDB every time the program needs to call the API to fetch posts. Therefore, next time the program meets a tag that has been queried, it will fetch data from MongoDB directly.
+Posts would be saved into MongoDB every time the program needs to call the Hatchways API. Therefore, next time the program meets a tag that has been queried, it will fetch data from MongoDB directly.
