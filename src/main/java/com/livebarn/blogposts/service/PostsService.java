@@ -2,6 +2,7 @@ package com.livebarn.blogposts.service;
 
 import com.livebarn.blogposts.mapper.Post;
 import com.livebarn.blogposts.mapper.Posts;
+import com.livebarn.blogposts.model.CachePost;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -18,11 +19,13 @@ import java.util.List;
 public class PostsService
 {
     private RestTemplate restTemplate;
+    private CacheService cacheService;
 
     @Autowired
-    public PostsService(RestTemplate restTemplate)
+    public PostsService(RestTemplate restTemplate, CacheService cacheService)
     {
         this.restTemplate = restTemplate;
+        this.cacheService = cacheService;
     }
 
     public Posts posts(String[] tags, String sortBy, String direction)
@@ -33,19 +36,43 @@ public class PostsService
 
         for(String tag : tags)
         {
-            String url = "https://api.hatchways.io/assessment/blog/posts?tag=" + tag;
-            Posts result = restTemplate.getForObject(url, Posts.class);
-
-            for(Post post : result.getPosts())
-            {
-                if(!set.contains(post.getId()))
+            // check whether these posts are in MongoDB
+            List<CachePost> cachePostList = cacheService.getCachePostByTag(tag);
+            // there are records in MongoDB
+            if(cachePostList.size() != 0) {
+                for(CachePost cachePost : cachePostList)
                 {
-                    postList.add(post);
-                    set.add(post.getId());
+                    // turn into Post
+                    Post curr_post = cachePost.toPost();
+                    if(!set.contains(curr_post.getId()))
+                    {
+                        postList.add(curr_post);
+                        set.add(curr_post.getId());
+                    }
                 }
+            } else { // no records in MongoDB, have to call API
+                String url = "https://api.hatchways.io/assessment/blog/posts?tag=" + tag;
+                Posts curr_posts = restTemplate.getForObject(url, Posts.class);
+                List<CachePost> curr_cachePostList = new ArrayList<>();
+
+                for(Post post : curr_posts.getPosts())
+                {
+                    if(!set.contains(post.getId()))
+                    {
+                        postList.add(post);
+                        set.add(post.getId());
+                    }
+
+                    CachePost cachePost = post.toCachePost(tag);
+                    curr_cachePostList.add(cachePost);
+                }
+
+                // save these records into MongoDB
+                cacheService.saveCachePost(curr_cachePostList);
             }
         }
 
+        // initialize different comparators
         PriorityQueue<Post> queue;
         if(sortBy.equals("id")) {
             IdComparator idComparator = new IdComparator();
@@ -72,6 +99,7 @@ public class PostsService
             index = postList.size() - 1;
         }
 
+        // handle asc & desc
         while (!queue.isEmpty())
         {
             Post p = queue.poll();
@@ -84,48 +112,48 @@ public class PostsService
 
         return new Posts(post_array);
     }
+}
 
-    class IdComparator implements Comparator<Post>
+class IdComparator implements Comparator<Post>
+{
+    public int compare(Post p1, Post p2)
     {
-        public int compare(Post p1, Post p2)
-        {
-            int id1 = p1.getId();
-            int id2 = p2.getId();
+        int id1 = p1.getId();
+        int id2 = p2.getId();
 
-            return (id1 - id2) > 0 ? 1 : -1;
-        }
+        return (id1 - id2) > 0 ? 1 : -1;
     }
+}
 
-    class ReadsComparator implements Comparator<Post>
+class ReadsComparator implements Comparator<Post>
+{
+    public int compare(Post p1, Post p2)
     {
-        public int compare(Post p1, Post p2)
-        {
-            int reads1 = p1.getReads();
-            int reads2 = p2.getReads();
+        int reads1 = p1.getReads();
+        int reads2 = p2.getReads();
 
-            return (reads1 - reads2) >= 0 ? 1 : -1;
-        }
+        return (reads1 - reads2) >= 0 ? 1 : -1;
     }
+}
 
-    class LikesComparator implements Comparator<Post>
+class LikesComparator implements Comparator<Post>
+{
+    public int compare(Post p1, Post p2)
     {
-        public int compare(Post p1, Post p2)
-        {
-            int likes1 = p1.getLikes();
-            int likes2 = p2.getLikes();
+        int likes1 = p1.getLikes();
+        int likes2 = p2.getLikes();
 
-            return (likes1 - likes2) >= 0 ? 1 : -1;
-        }
+        return (likes1 - likes2) >= 0 ? 1 : -1;
     }
+}
 
-    class PopularityComparator implements Comparator<Post>
+class PopularityComparator implements Comparator<Post>
+{
+    public int compare(Post p1, Post p2)
     {
-        public int compare(Post p1, Post p2)
-        {
-            double popularity1 = p1.getPopularity();
-            double popularity2 = p2.getPopularity();
+        double popularity1 = p1.getPopularity();
+        double popularity2 = p2.getPopularity();
 
-            return (popularity1 - popularity2) >= 0 ? 1 : -1;
-        }
+        return (popularity1 - popularity2) >= 0 ? 1 : -1;
     }
 }
