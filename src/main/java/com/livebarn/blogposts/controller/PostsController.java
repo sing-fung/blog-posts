@@ -26,7 +26,7 @@ public class PostsController
     @GetMapping("/api/posts")
     public Posts posts(@RequestParam(required = false) String tags, @RequestParam(required = false) String sortBy, @RequestParam(required = false) String direction)
     {
-        if(tags == null)
+        if(tags == null || tags.length() == 0)
         { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tags parameter is required"); }
 
         if(sortBy != null) {
