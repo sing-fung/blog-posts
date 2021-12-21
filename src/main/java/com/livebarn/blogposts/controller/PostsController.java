@@ -50,6 +50,10 @@ public class PostsController
         String[] tag_array;
         tag_array = tags.split(",");
 
+        // remove space
+        for(int i=0; i<tag_array.length; i++)
+        { tag_array[i] = tag_array[i].trim(); }
+
         return postsService.posts(tag_array, sortBy, direction);
     }
 }

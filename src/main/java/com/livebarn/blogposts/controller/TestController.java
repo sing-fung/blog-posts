@@ -50,6 +50,10 @@ public class TestController
         String[] tag_array;
         tag_array = tags.split(",");
 
+        // remove space
+        for(int i=0; i<tag_array.length; i++)
+        { tag_array[i] = tag_array[i].trim(); }
+
         return testService.test(tag_array, sortBy, direction);
     }
 }
