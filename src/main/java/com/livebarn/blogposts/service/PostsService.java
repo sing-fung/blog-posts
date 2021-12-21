@@ -30,8 +30,8 @@ public class PostsService
 
     public Posts posts(String[] tags, String sortBy, String direction)
     {
+        // save ids of posts
         HashSet<Integer> set = new HashSet<>();
-
         List<Post> postList = new ArrayList<>();
 
         for(String tag : tags)

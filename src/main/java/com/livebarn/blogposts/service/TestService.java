@@ -29,9 +29,11 @@ public class TestService
 
     public TestResult test(String[] tags, String sortBy, String direction)
     {
+        // posts received from my own method
         Post[] myPost_array = postsService.posts(tags, sortBy, direction).getPosts();
-
+        // check the number of posts
         Boolean numberofPosts = checkNumberofPosts(tags, myPost_array.length);
+        // check the sequence of posts
         Boolean sequence = checkSequence(myPost_array, sortBy, direction);
 
         TestResult testResult = new TestResult();
@@ -71,7 +73,7 @@ public class TestService
                         break;
                     }
                 }
-
+                // this post has not been added
                 if(added == Boolean.FALSE) { post_size++; }
             }
 
