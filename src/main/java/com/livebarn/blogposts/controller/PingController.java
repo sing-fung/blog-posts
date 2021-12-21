@@ -2,7 +2,7 @@ package com.livebarn.blogposts.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.livebarn.blogposts.common.Result;
+import com.livebarn.blogposts.common.PingResult;
 
 /**
  * @author sing-fung
@@ -13,8 +13,8 @@ import com.livebarn.blogposts.common.Result;
 public class PingController
 {
    @GetMapping("/api/ping")
-   public Result ping()
+   public PingResult ping()
    {
-      return new Result(Boolean.TRUE);
+      return new PingResult(Boolean.TRUE);
    }
 }

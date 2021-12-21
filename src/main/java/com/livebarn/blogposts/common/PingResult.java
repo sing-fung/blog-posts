@@ -5,11 +5,11 @@ package com.livebarn.blogposts.common;
  * @since 12/20/2021
  */
 
-public class Result
+public class PingResult
 {
     private Boolean success;
 
-    public Result(Boolean success)
+    public PingResult(Boolean success)
     { this.success = success; }
 
     public Boolean getSuccess() {
