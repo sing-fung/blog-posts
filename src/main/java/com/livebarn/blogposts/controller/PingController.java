@@ -12,8 +12,8 @@ import com.livebarn.blogposts.common.PingResult;
 @RestController
 public class PingController
 {
-   @GetMapping("/api/ping")
-   public PingResult ping()
+    @GetMapping("/api/ping")
+    public PingResult ping()
    {
       return new PingResult(Boolean.TRUE);
    }
