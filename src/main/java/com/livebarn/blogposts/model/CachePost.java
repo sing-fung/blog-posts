@@ -14,13 +14,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-@Document(collection = "blogposts")
+@Document(collection = "post")
 public class CachePost
 {
     private String tag;
     private String author;
     private int authorId;
-    private int id;
+    private int postId;
     private int likes;
     private double popularity;
     private int reads;
@@ -31,7 +31,7 @@ public class CachePost
         Post post = new Post();
         post.setAuthor(this.getAuthor());
         post.setAuthorId(this.getAuthorId());
-        post.setId(this.getId());
+        post.setId(this.getPostId());
         post.setLikes(this.getLikes());
         post.setPopularity(this.getPopularity());
         post.setReads(this.getReads());

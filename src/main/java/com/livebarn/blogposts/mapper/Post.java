@@ -29,7 +29,7 @@ public class Post
         cachePost.setTag(tag);
         cachePost.setAuthor(this.getAuthor());
         cachePost.setAuthorId(this.getAuthorId());
-        cachePost.setId(this.getId());
+        cachePost.setPostId(this.getId());
         cachePost.setLikes(this.getLikes());
         cachePost.setPopularity(this.getPopularity());
         cachePost.setReads(this.getReads());
