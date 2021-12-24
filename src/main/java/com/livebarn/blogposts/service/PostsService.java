@@ -28,51 +28,8 @@ public class PostsService
         this.cacheService = cacheService;
     }
 
-    public Posts posts(String[] tags, String sortBy, String direction)
+    private PriorityQueue<Post> initializeQueue(String sortBy)
     {
-        // save ids of posts
-        HashSet<Integer> set = new HashSet<>();
-        List<Post> postList = new ArrayList<>();
-
-        for(String tag : tags)
-        {
-            // check whether these posts are in MongoDB
-            List<CachePost> cachePostList = cacheService.getCachePostByTag(tag);
-            // there are records in MongoDB
-            if(cachePostList.size() != 0) {
-                for(CachePost cachePost : cachePostList)
-                {
-                    // turn into Post
-                    Post curr_post = cachePost.toPost();
-                    if(!set.contains(curr_post.getId()))
-                    {
-                        postList.add(curr_post);
-                        set.add(curr_post.getId());
-                    }
-                }
-            } else { // no records in MongoDB, have to call API
-                String url = "https://api.hatchways.io/assessment/blog/posts?tag=" + tag;
-                Posts curr_posts = restTemplate.getForObject(url, Posts.class);
-                List<CachePost> curr_cachePostList = new ArrayList<>();
-
-                for(Post post : curr_posts.getPosts())
-                {
-                    if(!set.contains(post.getId()))
-                    {
-                        postList.add(post);
-                        set.add(post.getId());
-                    }
-
-                    CachePost cachePost = post.toCachePost(tag);
-                    curr_cachePostList.add(cachePost);
-                }
-
-                // save these records into MongoDB
-                cacheService.saveCachePost(curr_cachePostList);
-            }
-        }
-
-        // initialize different comparators
         PriorityQueue<Post> queue;
         if(sortBy.equals("id")) {
             IdComparator idComparator = new IdComparator();
@@ -88,10 +45,16 @@ public class PostsService
             queue = new PriorityQueue<>(popularityComparator);
         }
 
+        return queue;
+    }
+
+    private Post[] sortPosts(String direction, PriorityQueue<Post> queue, List<Post> postList)
+    {
+        Post[] post_array = new Post[postList.size()];
+
         for(Post post : postList)
         { queue.add(post); }
 
-        Post[] post_array = new Post[postList.size()];
         int index;
         if(direction.equals("asc")) {
             index = 0;
@@ -110,7 +73,99 @@ public class PostsService
             }
         }
 
+        return post_array;
+    }
+
+    public Posts posts(String[] tags, String sortBy, String direction)
+    {
+        // give each thread an individual tag for query
+        QueryTask[] threads = new QueryTask[tags.length];
+        for(int i=0; i<tags.length; i++)
+        {
+            threads[i] = new QueryTask(tags[i], restTemplate, cacheService);
+            threads[i].start();
+        }
+
+        // wait for all threads to finish their tasks
+        try {
+            for (int i = 0; i < tags.length; i++)
+            { threads[i].join(); }
+        } catch (InterruptedException e) {
+
+        }
+
+        // save ids of posts
+        HashSet<Integer> set = new HashSet<>();
+        List<Post> postList = new ArrayList<>();
+
+        for(int i=0; i<tags.length; i++)
+        {
+            List<Post> curr_postList = threads[i].getMyPostList();
+            for(Post post : curr_postList)
+            {
+                if(!set.contains(post.getId()))
+                {
+                    postList.add(post);
+                    set.add(post.getId());
+                }
+            }
+        }
+
+        // initialize different comparators
+        PriorityQueue<Post> queue = initializeQueue(sortBy);
+        // sort posts
+        Post[] post_array = sortPosts(direction, queue, postList);
+
         return new Posts(post_array);
+    }
+}
+
+class QueryTask extends Thread
+{
+    private final String tag;
+    private List<Post> myPostList;
+    private RestTemplate restTemplate;
+    private CacheService cacheService;
+
+    public QueryTask(String tag, RestTemplate restTemplate, CacheService cacheService)
+    {
+        this.tag = tag;
+        this.restTemplate = restTemplate;
+        this.cacheService = cacheService;
+        this.myPostList = new ArrayList<>();
+    }
+
+    public List<Post> getMyPostList()
+    { return this.myPostList; }
+
+    public void run()
+    {
+        // check whether these posts are in MongoDB
+        List<CachePost> cachePostList = cacheService.getCachePostByTag(tag);
+        // there are records in MongoDB
+        if(cachePostList.size() != 0) {
+            for(CachePost cachePost : cachePostList)
+            {
+                // turn into Post
+                Post curr_post = cachePost.toPost();
+                myPostList.add(curr_post);
+            }
+        } else { // no records in MongoDB, have to call API
+            String url = "https://api.hatchways.io/assessment/blog/posts?tag=" + tag;
+            Posts curr_posts = restTemplate.getForObject(url, Posts.class);
+            List<CachePost> curr_cachePostList = new ArrayList<>();
+
+            for (Post post : curr_posts.getPosts())
+            {
+                myPostList.add(post);
+
+                CachePost cachePost = post.toCachePost(tag);
+                curr_cachePostList.add(cachePost);
+            }
+
+            // save these records into MongoDB
+            cacheService.saveCachePost(curr_cachePostList);
+        }
     }
 }
 
