@@ -91,7 +91,7 @@ public class PostsService
             for (int i = 0; i < tags.length; i++)
             { threads[i].join(); }
         } catch (InterruptedException e) {
-
+            e.printStackTrace();
         }
 
         // save ids of posts
